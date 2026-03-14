@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <title>🌱 Smart Garden Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #a8edea, #fed6e3);
+      margin: 0; padding: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.5rem;
+      color: #151b1a;
+      text-shadow: 0 0 10px #00ffcc;
+      margin: 20px 0;
+    }
+
+    .connection-status {
+      padding: 8px 16px;
+      border-radius: 20px;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+    .connected {
+      background-color: #2ecc71;
+      color: white;
+    }
+    .disconnected {
+      background-color: #e74c3c;
+      color: white;
+    }
+
+    /* Controls styling */
+    .controls {
+      margin: 20px;
+      display: flex;
+      gap: 25px;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 120px;
+    }
+
+    .control-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #2c3e50;
+      text-align: center;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 15px;
+      background: #f8f9fa;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #e74c3c;
+    }
+
+    .status-dot.active {
+      background: #2ecc71;
+      box-shadow: 0 0 8px #2ecc71;
+    }
+
+    .status-text {
+      color: #7f8c8d;
+    }
+
+    .status-text.active {
+      color: #2c3e50;
+      font-weight: 600;
+    }
+
+    .mode-control {
+      border-left: 2px solid #eee;
+      padding-left: 25px;
+    }
+
+    /* Responsive adjustments for controls */
+    @media (max-width: 768px) {
+      .controls {
+        gap: 15px;
+      }
+      
+      .control-group {
+        min-width: 100px;
+      }
+      
+      .mode-control {
+        border-left: none;
+        border-top: 2px solid #eee;
+        padding-left: 0;
+        padding-top: 15px;
+        width: 100%;
+      }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      width: 90%;
+      max-width: 1000px;
+    }
+
+    @media (max-width: 480px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+      text-align: center;
+      transition: transform 0.3s;
+      position: relative;
+    }
+    .card:hover { transform: translateY(-5px); }
+
+    /* Plant visuals */
+    .plant {
+      position: relative;
+      width: 60px;
+      height: 120px;
+      margin: 20px auto;
+      animation: grow 2s ease-in-out forwards;
+    }
+    .stem {
+      width: 6px;
+      height: 100%;
+      background: green;
+      margin: 0 auto;
+      border-radius: 3px;
+    }
+    .leaf {
+      width: 30px;
+      height: 15px;
+      background: green;
+      border-radius: 50%;
+      position: absolute;
+      top: 20px;
+      transition: background 0.3s;
+    }
+    .leaf-left { left: -25px; transform: rotate(-20deg); }
+    .leaf-right { right: -25px; transform: rotate(20deg); }
+
+    @keyframes grow {
+      from { transform: scaleY(0.2); opacity: 0.5; }
+      to   { transform: scaleY(1); opacity: 1; }
+    }
+
+    .wilt .stem, .wilt .leaf {
+      background: #9b7653 !important;
+      animation: wilt 1.5s infinite alternate;
+    }
+    @keyframes wilt {
+      from { transform: rotate(0deg) scaleY(1); }
+      to   { transform: rotate(15deg) scaleY(0.8); }
+    }
+
+    .overwatered::after {
+      content: "💧";
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: drip 1s infinite;
+    }
+    @keyframes drip {
+      0% { top: -20px; opacity: 1; }
+      100% { top: 20px; opacity: 0; }
+    }
+
+    .value { 
+      font-size: 1rem; 
+      margin-top: 8px; 
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    .sensor-value {
+      font-size: 0.9rem;
+      margin: 4px 0;
+      color: #555;
+    }
+
+    /* Plant selection dropdown */
+    .plant-select-container {
+      position: relative;
+      margin: 10px 0;
+    }
+    
+    .plant-search {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 0.9rem;
+      background: #f9f9f9;
+      box-sizing: border-box;
+    }
+    
+    .plant-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      z-index: 10;
+      display: none;
+    }
+    
+    .plant-dropdown.show {
+      display: block;
+    }
+    
+    .plant-option {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+      transition: background 0.2s;
+    }
+    
+    .plant-option:hover {
+      background: #f0f8ff;
+    }
+    
+    .plant-option:last-child {
+      border-bottom: none;
+    }
+
+    /* Plant details styling */
+    .plant-details {
+      margin-top: 15px;
+      text-align: left;
+    }
+
+    .detail-group {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .detail-group .sensor-value {
+      flex: 1;
+      min-width: 120px;
+      margin: 4px 0;
+    }
+
+    .status-container {
+      margin: 10px 0;
+      padding: 8px;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+      text-align: center;
+    }
+
+    .detail-label {
+      font-weight: 600;
+      color: #2c3e50;
+      margin-right: 5px;
+    }
+
+    .detail-value {
+      color: #555;
+    }
+
+    .detail-icon {
+      margin-right: 5px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .detail-group {
+        flex-direction: column;
+      }
+      
+      .detail-group .sensor-value {
+        min-width: 100%;
+      }
+    }
+
+    button {
+      background: #27ae60;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    button:hover { 
+      background: #219150; 
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+    }
+    button.off { 
+      background: #e74c3c; 
+    }
+    button.off:hover { 
+      background: #c0392b; 
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px; 
+      height: 34px;
+    }
+    .switch input { 
+      opacity: 0; 
+      width: 0; 
+      height: 0; 
+    }
+    .slider {
+      position: absolute; 
+      cursor: pointer;
+      top: 0; 
+      left: 0; 
+      right: 0; 
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s; 
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute; 
+      content: "";
+      height: 26px; 
+      width: 26px;
+      left: 4px; 
+      bottom: 4px;
+      background-color: white;
+      transition: .4s; 
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #2196F3;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    
+    .mode-label {
+      font-weight: bold;
+      color: #2c3e50;
+      padding: 5px 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Overview Table */
+    .overview {
+      margin: 30px 0;
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+      width: 90%;
+      max-width: 1000px;
+    }
+
+    .overview h2 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 20px;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .overview-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .overview-table th, .overview-table td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    .overview-table th {
+      background: linear-gradient(135deg, #a8edea, #fed6e3);
+      color: #2c3e50;
+      font-weight: bold;
+    }
+
+    .overview-table tr:hover {
+      background-color: #f8f9fa;
+    }
+
+    .status-indicator-table {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-good { background-color: #2ecc71; }
+    .status-warning { background-color: #f39c12; }
+    .status-danger { background-color: #e74c3c; }
+
+    /* bubbles */
+    .bubbles {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .bubbles span {
+      position: absolute;
+      bottom: -100px;
+      background: rgba(0, 255, 204, 0.3);
+      border-radius: 50%;
+      animation: rise 12s infinite ease-in;
+    }
+
+    .bubbles span:nth-child(1) {
+      width: 60px;
+      height: 60px;
+      left: 20%;
+      animation-duration: 10s;
+    }
+
+    .bubbles span:nth-child(2) {
+      width: 100px;
+      height: 100px;
+      left: 50%;
+      animation-duration: 14s;
+      animation-delay: 2s;
+    }
+
+    .bubbles span:nth-child(3) {
+      width: 40px;
+      height: 40px;
+      left: 70%;
+      animation-duration: 12s;
+      animation-delay: 4s;
+    }
+
+    .bubbles span:nth-child(4) {
+      width: 80px;
+      height: 80px;
+      left: 90%;
+      animation-duration: 16s;
+      animation-delay: 1s;
+    }
+
+    @keyframes rise {
+      0% {
+        transform: translateY(0) scale(1);
+        opacity: 0.6;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-120vh) scale(1.2);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>GROWRAXX 🌱</h1>
+  
+  <!-- bubbles-->
+  <div class="bubbles">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+
+  <div id="connectionStatus" class="connection-status disconnected">Disconnected from ESP32</div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="control-group">
+      <div class="control-label">HYDRO-FLOW PUMP</div>
+      <button id="pumpBtn" onclick="togglePump()">Pump OFF</button>
+    </div>
+    
+    <div class="control-group">
+      <div class="control-label">PHOTON-BLOOM LIGHT</div>
+      <div class="status-indicator" id="lightStatus">
+        <span class="status-dot"></span>
+        <span class="status-text">OFFLINE</span>
+      </div>
+      <button id="lightBtn" onclick="toggleLight()">Activate</button>
+    </div>
+    
+    <div class="control-group">
+      <div class="control-label">AERO-FLOW COOLER</div>
+      <div class="status-indicator" id="coolerStatus">
+        <span class="status-dot"></span>
+        <span class="status-text">OFFLINE</span>
+      </div>
+      <button id="coolerBtn" onclick="toggleCooler()">Activate</button>
+    </div>
+    
+    <div class="control-group mode-control">
+      <label class="switch">
+        <input type="checkbox" id="modeSwitch" onchange="toggleMode()">
+        <span class="slider"></span>
+      </label>
+      <span id="modeLabel" class="mode-label">Manual Mode</span>
+    </div>
+  </div>
+
+  <!-- Plants -->
+  <div class="grid">
+    <!-- Plant 1 -->
+    <div class="card">
+      <h2>Plant 1</h2>
+      <div class="plant-select-container">
+        <input type="text" class="plant-search" placeholder="Search or select plant..." 
+               onfocus="showDropdown(1)" oninput="filterPlants(1)">
+        <div class="plant-dropdown" id="dropdown1"></div>
+      </div>
+      <div class="plant" id="plant1">
+        <div class="stem"></div>
+        <div class="leaf leaf-left"></div>
+        <div class="leaf leaf-right"></div>
+      </div>
+      
+      <div class="value" id="s1val">Moisture: --%</div>
+      
+      <!-- Plant Details Container -->
+      <div class="plant-details">
+        <div class="detail-group">
+          <div class="sensor-value" id="plant1Type">
+            <span class="detail-label">Plant:</span> 
+            <span class="detail-value">--</span>
+          </div>
+          <div class="sensor-value" id="idealMoisture1">
+            <span class="detail-label">Ideal Moisture:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+        
+        <div class="detail-group">
+          <div class="sensor-value" id="idealTemp1">
+            <span class="detail-label">Ideal Temp:</span> 
+            <span class="detail-value">--</span>
+          </div>
+          <div class="sensor-value" id="idealHumidity1">
+            <span class="detail-label">Ideal Humidity:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+        
+        <div class="sensor-value status-container" id="status1">
+          <span class="detail-label">Status:</span> 
+          <span class="detail-value">--</span>
+        </div>
+        
+        <div class="detail-group">
+          <div class="sensor-value" id="temp1">
+            <span class="detail-icon">🌡️</span>
+            <span class="detail-label">Temp:</span> 
+            <span class="detail-value">--°C</span>
+          </div>
+          <div class="sensor-value" id="hum1">
+            <span class="detail-icon">💧</span>
+            <span class="detail-label">Humidity:</span> 
+            <span class="detail-value">--%</span>
+          </div>
+          <div class="sensor-value" id="light1">
+            <span class="detail-icon">☀️</span>
+            <span class="detail-label">Light:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plant 2 -->
+    <div class="card">
+      <h2>Plant 2</h2>
+      <div class="plant-select-container">
+        <input type="text" class="plant-search" placeholder="Search or select plant..." 
+               onfocus="showDropdown(2)" oninput="filterPlants(2)">
+        <div class="plant-dropdown" id="dropdown2"></div>
+      </div>
+      <div class="plant" id="plant2">
+        <div class="stem"></div>
+        <div class="leaf leaf-left"></div>
+        <div class="leaf leaf-right"></div>
+      </div>
+      
+      <div class="value" id="s2val">Moisture: --%</div>
+      
+      <!-- Plant Details Container -->
+      <div class="plant-details">
+        <div class="detail-group">
+          <div class="sensor-value" id="plant2Type">
+            <span class="detail-label">Plant:</span> 
+            <span class="detail-value">--</span>
+          </div>
+          <div class="sensor-value" id="idealMoisture2">
+            <span class="detail-label">Ideal Moisture:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+        
+        <div class="detail-group">
+          <div class="sensor-value" id="idealTemp2">
+            <span class="detail-label">Ideal Temp:</span> 
+            <span class="detail-value">--</span>
+          </div>
+          <div class="sensor-value" id="idealHumidity2">
+            <span class="detail-label">Ideal Humidity:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+        
+        <div class="sensor-value status-container" id="status2">
+          <span class="detail-label">Status:</span> 
+          <span class="detail-value">--</span>
+        </div>
+        
+        <div class="detail-group">
+          <div class="sensor-value" id="temp2">
+            <span class="detail-icon">🌡️</span>
+            <span class="detail-label">Temp:</span> 
+            <span class="detail-value">--°C</span>
+          </div>
+          <div class="sensor-value" id="hum2">
+            <span class="detail-icon">💧</span>
+            <span class="detail-label">Humidity:</span> 
+            <span class="detail-value">--%</span>
+          </div>
+          <div class="sensor-value" id="light2">
+            <span class="detail-icon">☀️</span>
+            <span class="detail-label">Light:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plant 3 -->
+    <div class="card">
+      <h2>Plant 3</h2>
+      <div class="plant-select-container">
+        <input type="text" class="plant-search" placeholder="Search or select plant..." 
+               onfocus="showDropdown(3)" oninput="filterPlants(3)">
+        <div class="plant-dropdown" id="dropdown3"></div>
+      </div>
+      <div class="plant" id="plant3">
+        <div class="stem"></div>
+        <div class="leaf leaf-left"></div>
+        <div class="leaf leaf-right"></div>
+      </div>
+      
+      <div class="value" id="s3val">Moisture: --%</div>
+      
+      <!-- Plant Details Container -->
+      <div class="plant-details">
+        <div class="detail-group">
+          <div class="sensor-value" id="plant3Type">
+            <span class="detail-label">Plant:</span> 
+            <span class="detail-value">--</span>
+          </div>
+          <div class="sensor-value" id="idealMoisture3">
+            <span class="detail-label">Ideal Moisture:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+        
+        <div class="detail-group">
+          <div class="sensor-value" id="idealTemp3">
+            <span class="detail-label">Ideal Temp:</span> 
+            <span class="detail-value">--</span>
+          </div>
+          <div class="sensor-value" id="idealHumidity3">
+            <span class="detail-label">Ideal Humidity:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+        
+        <div class="sensor-value status-container" id="status3">
+          <span class="detail-label">Status:</span> 
+            <span class="detail-value">--</span>
+        </div>
+        
+        <div class="detail-group">
+          <div class="sensor-value" id="temp3">
+            <span class="detail-icon">🌡️</span>
+            <span class="detail-label">Temp:</span> 
+            <span class="detail-value">--°C</span>
+          </div>
+          <div class="sensor-value" id="hum3">
+            <span class="detail-icon">💧</span>
+            <span class="detail-label">Humidity:</span> 
+            <span class="detail-value">--%</span>
+          </div>
+          <div class="sensor-value" id="light3">
+            <span class="detail-icon">☀️</span>
+            <span class="detail-label">Light:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plant 4 -->
+    <div class="card">
+      <h2>Plant 4</h2>
+      <div class="plant-select-container">
+        <input type="text" class="plant-search" placeholder="Search or select plant..." 
+               onfocus="showDropdown(4)" oninput="filterPlants(4)">
+        <div class="plant-dropdown" id="dropdown4"></div>
+      </div>
+      <div class="plant" id="plant4">
+        <div class="stem"></div>
+        <div class="leaf leaf-left"></div>
+        <div class="leaf leaf-right"></div>
+      </div>
+      
+      <div class="value" id="s4val">Moisture: --%</div>
+      
+      <!-- Plant Details Container -->
+      <div class="plant-details">
+        <div class="detail-group">
+          <div class="sensor-value" id="plant4Type">
+            <span class="detail-label">Plant:</span> 
+            <span class="detail-value">--</span>
+          </div>
+          <div class="sensor-value" id="idealMoisture4">
+            <span class="detail-label">Ideal Moisture:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+        
+        <div class="detail-group">
+          <div class="sensor-value" id="idealTemp4">
+            <span class="detail-label">Ideal Temp:</span> 
+            <span class="detail-value">--</span>
+          </div>
+          <div class="sensor-value" id="idealHumidity4">
+            <span class="detail-label">Ideal Humidity:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+        
+        <div class="sensor-value status-container" id="status4">
+          <span class="detail-label">Status:</span> 
+          <span class="detail-value">--</span>
+        </div>
+        
+        <div class="detail-group">
+          <div class="sensor-value" id="temp4">
+            <span class="detail-icon">🌡️</span>
+            <span class="detail-label">Temp:</span> 
+            <span class="detail-value">--°C</span>
+          </div>
+          <div class="sensor-value" id="hum4">
+            <span class="detail-icon">💧</span>
+            <span class="detail-label">Humidity:</span> 
+            <span class="detail-value">--%</span>
+          </div>
+          <div class="sensor-value" id="light4">
+            <span class="detail-icon">☀️</span>
+            <span class="detail-label">Light:</span> 
+            <span class="detail-value">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overview Table -->
+  <div class="overview">
+    <h2>🌿 Environment Overview</h2>
+    <table class="overview-table">
+      <thead>
+        <tr>
+          <th>Parameter</th>
+          <th>Current Value</th>
+          <th>Status</th>
+          <th>Ideal Range</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>🌡️ Temperature</td>
+          <td id="overview-temp">--°C</td>
+          <td id="temp-status">--</td>
+          <td>20-30°C</td>
+        </tr>
+        <tr>
+          <td>💧 Humidity</td>
+          <td id="overview-hum">--%</td>
+          <td id="hum-status">--</td>
+          <td>40-70%</td>
+        </tr>
+        <tr>
+          <td>☀️ Light Intensity</td>
+          <td id="overview-light">--</td>
+          <td id="light-status">--</td>
+          <td>500-2000 lux</td>
+        </tbody>
+    </table>
+  </div>
+
+<script>
+    const ESP_IP = "http://192.168.253.208";  // your ESP32 IP
+    let isConnected = false;
+    let currentMode = "manual"; // Track mode locally to prevent auto-reset
+    
+    // Plant database from the Excel file
+    const plantDatabase = [
+      { name: "Tulsi (Holy Basil)", moisture: "40-60", temperature: "20-35", humidity: "40-70" },
+      { name: "Aloe Vera", moisture: "20-40", temperature: "18-30", humidity: "30-50" },
+      { name: "Money Plant (Pothos)", moisture: "40-70", temperature: "15-30", humidity: "40-70" },
+      { name: "Areca Palm", moisture: "50-70", temperature: "18-32", humidity: "50-80" },
+      { name: "Snake Plant", moisture: "20-40", temperature: "15-30", humidity: "30-60" },
+      { name: "Peace Lily", moisture: "50-70", temperature: "18-30", humidity: "50-80" },
+      { name: "Spider Plant", moisture: "40-60", temperature: "15-30", humidity: "40-70" },
+      { name: "Jade Plant", moisture: "20-40", temperature: "15-28", humidity: "30-60" },
+      { name: "Rose", moisture: "50-70", temperature: "15-28", humidity: "50-80" },
+      { name: "Jasmine", moisture: "50-70", temperature: "20-32", humidity: "50-80" },
+      { name: "Hibiscus", moisture: "60-80", temperature: "18-32", humidity: "50-80" },
+            { name: "Chrysanthemum", moisture: "40-60", temperature: "15-25", humidity: "40-70" },
+      { name: "Marigold", moisture: "40-60", temperature: "20-30", humidity: "40-70" },
+      { name: "Coleus", moisture: "50-70", temperature: "18-30", humidity: "50-80" },
+      { name: "Mint", moisture: "50-70", temperature: "18-30", humidity: "50-80" },
+      { name: "Curry Leaf Plant", moisture: "40-60", temperature: "20-35", humidity: "40-70" },
+      { name: "Coriander", moisture: "40-60", temperature: "18-25", humidity: "50-70" },
+      { name: "Spinach", moisture: "50-70", temperature: "15-25", humidity: "50-80" },
+      { name: "Fenugreek (Methi)", moisture: "40-60", temperature: "18-30", humidity: "50-80" },
+      { name: "Chili Plant", moisture: "50-70", temperature: "20-30", humidity: "50-80" },
+      { name: "Tomato", moisture: "50-70", temperature: "20-28", humidity: "50-80" },
+      { name: "Brinjal (Eggplant)", moisture: "50-70", temperature: "20-30", humidity: "50-80" },
+      { name: "Capsicum (Bell Pepper)", moisture: "50-70", temperature: "18-28", humidity: "50-80" },
+      { name: "Okra (Lady Finger)", moisture: "50-70", temperature: "20-30", humidity: "50-80" },
+      { name: "Lettuce", moisture: "60-80", temperature: "15-25", humidity: "50-80" },
+      { name: "Basil (Sweet Basil)", moisture: "40-60", temperature: "20-30", humidity: "40-70" },
+      { name: "Thyme", moisture: "30-50", temperature: "15-25", humidity: "30-60" },
+      { name: "Oregano", moisture: "30-50", temperature: "15-25", humidity: "40-60" },
+      { name: "Parsley", moisture: "40-60", temperature: "15-25", humidity: "40-70" },
+      { name: "Celosia", moisture: "40-60", temperature: "20-30", humidity: "50-80" },
+      { name: "Croton", moisture: "50-70", temperature: "20-32", humidity: "50-80" },
+      { name: "Ixora", moisture: "50-70", temperature: "20-30", humidity: "50-80" },
+      { name: "Bougainvillea", moisture: "30-50", temperature: "20-35", humidity: "30-60" },
+      { name: "Kalanchoe", moisture: "20-40", temperature: "15-25", humidity: "30-60" },
+      { name: "Zebra Plant", moisture: "40-60", temperature: "18-28", humidity: "50-80" },
+      { name: "Calathea", moisture: "50-70", temperature: "18-28", humidity: "50-80" },
+      { name: "Anthurium", moisture: "50-70", temperature: "18-28", humidity: "60-80" },
+      { name: "Begonia", moisture: "40-60", temperature: "18-28", humidity: "50-70" },
+      { name: "Geranium", moisture: "40-60", temperature: "15-25", humidity: "40-70" },
+      { name: "Orchid", moisture: "50-70", temperature: "18-30", humidity: "60-80" },
+      { name: "Adenium (Desert Rose)", moisture: "20-40", temperature: "20-35", humidity: "30-50" },
+      { name: "Poinsettia", moisture: "40-60", temperature: "15-25", humidity: "40-70" },
+      { name: "Dahlia", moisture: "50-70", temperature: "15-25", humidity: "50-70" },
+      { name: "Sunflower (Dwarf)", moisture: "40-60", temperature: "20-30", humidity: "40-70" },
+      { name: "Bamboo Palm", moisture: "50-70", temperature: "18-30", humidity: "50-80" },
+      { name: "Ficus Bonsai", moisture: "40-60", temperature: "20-30", humidity: "50-70" },
+      { name: "Dracaena", moisture: "40-60", temperature: "18-28", humidity: "40-70" },
+      { name: "Aglaonema", moisture: "50-70", temperature: "18-28", humidity: "50-80" }
+    ];
+
+    // Initialize plant dropdowns
+    function initPlantDropdowns() {
+      for (let i = 1; i <= 4; i++) {
+        populateDropdown(i, "");
+      }
+      
+      // Close dropdowns when clicking elsewhere
+      document.addEventListener('click', function(e) {
+        for (let i = 1; i <= 4; i++) {
+          const dropdown = document.getElementById(`dropdown${i}`);
+          const search = document.querySelector(`#dropdown${i}`).previousElementSibling;
+          
+          if (!dropdown.contains(e.target) && e.target !== search) {
+            dropdown.classList.remove('show');
+          }
+        }
+      });
+    }
+
+    // Show dropdown for a specific plant
+    function showDropdown(plantId) {
+      // Hide all other dropdowns
+      for (let i = 1; i <= 4; i++) {
+        if (i !== plantId) {
+          document.getElementById(`dropdown${i}`).classList.remove('show');
+        }
+      }
+      
+      const dropdown = document.getElementById(`dropdown${plantId}`);
+      dropdown.classList.add('show');
+      populateDropdown(plantId, "");
+    }
+
+    // Filter plants based on search input
+    function filterPlants(plantId) {
+      const searchInput = document.querySelector(`#dropdown${plantId}`).previousElementSibling;
+      const searchTerm = searchInput.value.toLowerCase();
+      populateDropdown(plantId, searchTerm);
+    }
+
+    // Populate dropdown with filtered plants
+    function populateDropdown(plantId, filter) {
+      const dropdown = document.getElementById(`dropdown${plantId}`);
+      dropdown.innerHTML = '';
+      
+      const filteredPlants = plantDatabase.filter(plant => 
+        plant.name.toLowerCase().includes(filter)
+      );
+      
+      if (filteredPlants.length === 0) {
+        const noResult = document.createElement('div');
+        noResult.className = 'plant-option';
+        noResult.textContent = 'No plants found';
+        dropdown.appendChild(noResult);
+        return;
+      }
+      
+      filteredPlants.forEach(plant => {
+        const option = document.createElement('div');
+        option.className = 'plant-option';
+        option.textContent = plant.name;
+        option.onclick = () => selectPlant(plantId, plant);
+        dropdown.appendChild(option);
+      });
+    }
+
+    // Select a plant for a specific card
+    function selectPlant(plantId, plant) {
+      const searchInput = document.querySelector(`#dropdown${plantId}`).previousElementSibling;
+      searchInput.value = plant.name;
+      
+      document.getElementById(`dropdown${plantId}`).classList.remove('show');
+      document.getElementById(`plant${plantId}Type`).querySelector('.detail-value').textContent = plant.name;
+      document.getElementById(`idealMoisture${plantId}`).querySelector('.detail-value').textContent = `${plant.moisture}%`;
+      document.getElementById(`idealTemp${plantId}`).querySelector('.detail-value').textContent = `${plant.temperature}°C`;
+      document.getElementById(`idealHumidity${plantId}`).querySelector('.detail-value').textContent = `${plant.humidity}%`;
+      
+      // Save selection to localStorage
+      const selections = JSON.parse(localStorage.getItem('plantSelections') || '{}');
+      selections[`plant${plantId}`] = plant;
+      localStorage.setItem('plantSelections', JSON.stringify(selections));
+      
+      // Update plant status based on new selection
+      updatePlantStatusBasedOnIdeal(plantId);
+    }
+
+    // Load saved plant selections
+    function loadPlantSelections() {
+      const selections = JSON.parse(localStorage.getItem('plantSelections') || '{}');
+      
+      for (let i = 1; i <= 4; i++) {
+        const plantKey = `plant${i}`;
+        if (selections[plantKey]) {
+          const plant = selections[plantKey];
+          const searchInput = document.querySelector(`#dropdown${i}`).previousElementSibling;
+          searchInput.value = plant.name;
+          document.getElementById(`plant${i}Type`).querySelector('.detail-value').textContent = plant.name;
+          document.getElementById(`idealMoisture${i}`).querySelector('.detail-value').textContent = `${plant.moisture}%`;
+          document.getElementById(`idealTemp${i}`).querySelector('.detail-value').textContent = `${plant.temperature}°C`;
+          document.getElementById(`idealHumidity${i}`).querySelector('.detail-value').textContent = `${plant.humidity}%`;
+        }
+      }
+    }
+
+    // Update plant status based on ideal values
+    function updatePlantStatusBasedOnIdeal(plantId) {
+      const selections = JSON.parse(localStorage.getItem('plantSelections') || '{}');
+      const plant = selections[`plant${plantId}`];
+      
+      if (!plant) return;
+      
+      const moistureElement = document.getElementById(`s${plantId}val`);
+      if (moistureElement.textContent !== 'Moisture: --%') {
+        const currentMoisture = parseInt(moistureElement.textContent.replace('Moisture: ', '').replace('%', ''));
+        const [minMoisture, maxMoisture] = plant.moisture.split('-').map(Number);
+        
+        const statusElement = document.getElementById(`status${plantId}`);
+        let status = '';
+        let statusColor = '';
+        
+        if (currentMoisture < minMoisture) {
+          status = '💧 Needs Water';
+          statusColor = '#e74c3c';
+        } else if (currentMoisture > maxMoisture) {
+          status = '💦 Too Wet';
+          statusColor = '#3498db';
+        } else {
+          status = '✅ Good';
+          statusColor = '#2ecc71';
+        }
+        
+        statusElement.querySelector('.detail-value').textContent = status;
+        statusElement.style.backgroundColor = statusColor;
+        statusElement.style.color = 'white';
+      }
+    }
+
+    // Plant status function
+    function updatePlantStatus(plantId, moisture) {
+      const statusElement = document.getElementById(`status${plantId}`);
+      let status = '';
+      let statusColor = '';
+      
+      // Check if we have a selected plant with ideal values
+      const selections = JSON.parse(localStorage.getItem('plantSelections') || '{}');
+      const plant = selections[`plant${plantId}`];
+      
+      if (plant) {
+        const [minMoisture, maxMoisture] = plant.moisture.split('-').map(Number);
+        
+        if (moisture < minMoisture) {
+          status = '💧 Needs Water';
+          statusColor = '#e74c3c';
+        } else if (moisture > maxMoisture) {
+          status = '💦 Too Wet';
+          statusColor = '#3498db';
+        } else {
+          status = '✅ Good';
+          statusColor = '#2ecc71';
+        }
+      } else {
+        // Fallback to generic thresholds if no plant selected
+        if (moisture < 30) {
+          status = '💧 Needs Water';
+          statusColor = '#e74c3c';
+        } else if (moisture > 80) {
+          status = '💦 Too Wet';
+          statusColor = '#3498db';
+        } else {
+          status = '✅ Good';
+          statusColor = '#2ecc71';
+        }
+      }
+      
+      statusElement.querySelector('.detail-value').textContent = status;
+      statusElement.style.backgroundColor = statusColor;
+      statusElement.style.color = 'white';
+    }
+
+    // Status indicator for overview table
+    function updateStatusIndicator(type, value, min, max) {
+      const statusElement = document.getElementById(`${type}-status`);
+      let status = '';
+      let statusClass = '';
+      
+      if (value < min) {
+        status = 'Low';
+        statusClass = 'status-warning';
+      } else if (value > max) {
+        status = 'High';
+        statusClass = 'status-danger';
+      } else {
+        status = 'Good';
+        statusClass = 'status-good';
+      }
+      
+      statusElement.innerHTML = `<span class="status-indicator-table ${statusClass}"></span>${status}`;
+    }
+
+    // Update plant visual
+    function updatePlantVisual(id, value) {
+      const plant = document.getElementById(id);
+      plant.classList.remove("wilt", "overwatered");
+
+      // Use generic thresholds for visual representation
+      if (value < 30) {
+        plant.classList.add("wilt");
+      } else if (value > 80) {
+        plant.classList.add("overwatered");
+      }
+    }
+
+    // Toggle grow light
+    async function toggleLight() {
+      if (!isConnected) {
+        alert("Not connected to ESP32. Check the IP address.");
+        return;
+      }
+      
+      try {
+        await fetch(`${ESP_IP}/light`, { method: 'POST' });
+        // Don't call fetchData() immediately - let the next interval update it
+      } catch (err) {
+        console.error("Error toggling light:", err);
+        alert("Failed to toggle light. Check ESP32 connection.");
+      }
+    }
+
+    // Toggle air cooler (FAN)
+    async function toggleCooler() {
+      if (!isConnected) {
+        alert("Not connected to ESP32. Check the IP address.");
+        return;
+      }
+      
+      try {
+        await fetch(`${ESP_IP}/fan`, { method: 'POST' });
+        // Don't call fetchData() immediately - let the next interval update it
+      } catch (err) {
+        console.error("Error toggling cooler:", err);
+        alert("Failed to toggle cooler. Check ESP32 connection.");
+      }
+    }
+
+    // Toggle pump
+    async function togglePump() {
+      if (!isConnected) {
+        alert("Not connected to ESP32. Check the IP address.");
+        return;
+      }
+      
+      try {
+        await fetch(`${ESP_IP}/pump`, { method: 'POST' });
+        // Don't call fetchData() immediately - let the next interval update it
+      } catch (err) {
+        console.error("Error toggling pump:", err);
+        alert("Failed to toggle pump. Check ESP32 connection.");
+      }
+    }
+
+    async function fetchData() {
+      try {
+        const res = await fetch(`${ESP_IP}/status`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        const data = await res.json();
+
+        // Update connection status
+        updateConnectionStatus(true);
+
+        // 🌱 Update sensor values for each plant
+        for (let i = 1; i <= 4; i++) {
+          const moistureValue = data[`s${i}`] || 0;
+          document.getElementById(`s${i}val`).innerText = `Moisture: ${moistureValue}%`;
+          document.getElementById(`temp${i}`).querySelector('.detail-value').textContent = `${data.temperature || '--'}°C`;
+          document.getElementById(`hum${i}`).querySelector('.detail-value').textContent = `${data.humidity || '--'}%`;
+          document.getElementById(`light${i}`).querySelector('.detail-value').textContent = data.ldr || '--';
+          
+          updatePlantStatus(i, moistureValue);
+          updatePlantVisual(`plant${i}`, moistureValue);
+        }
+
+        // 📊 Update Overview Table
+        document.getElementById("overview-temp").innerText = `${data.temperature || '--'}°C`;
+        document.getElementById("overview-hum").innerText = `${data.humidity || '--'}%`;
+        document.getElementById("overview-light").innerText = data.ldr || '--';
+
+        // Update status indicators
+        updateStatusIndicator('temp', data.temperature || 0, 20, 30);
+        updateStatusIndicator('hum', data.humidity || 0, 40, 70);
+        updateStatusIndicator('light', data.ldr || 0, 500, 2000);
+
+        // 💧 Update Pump Button
+        const pumpBtn = document.getElementById("pumpBtn");
+        if (data.pump === 1) {
+          pumpBtn.innerText = "Pump ON";
+          pumpBtn.classList.remove("off");
+        } else {
+          pumpBtn.innerText = "Pump OFF";
+          pumpBtn.classList.add("off");
+        }
+
+        // 🔀 Update Mode Switch + Label - Use local state to prevent auto-reset
+        const modeSwitch = document.getElementById("modeSwitch");
+        const modeLabel = document.getElementById("modeLabel");
+        
+        // Only update if the mode has actually changed
+        if ((data.auto === 1 && currentMode !== "auto") || (data.auto === 0 && currentMode !== "manual")) {
+          if (data.auto === 1) {
+            modeSwitch.checked = true;
+            modeLabel.innerText = "Auto Mode";
+            currentMode = "auto";
+          } else {
+            modeSwitch.checked = false;
+            modeLabel.innerText = "Manual Mode";
+            currentMode = "manual";
+          }
+        }
+
+        // 💡 Update Light Status
+        const lightStatus = document.getElementById("lightStatus");
+        const lightStatusDot = lightStatus.querySelector('.status-dot');
+        const lightStatusText = lightStatus.querySelector('.status-text');
+        const lightBtn = document.getElementById("lightBtn");
+
+        if (data.light === 1) {
+          lightStatusDot.classList.add('active');
+          lightStatusText.classList.add('active');
+          lightStatusText.textContent = 'ACTIVE';
+          lightBtn.textContent = 'Deactivate';
+        } else {
+          lightStatusDot.classList.remove('active');
+          lightStatusText.classList.remove('active');
+          lightStatusText.textContent = 'OFFLINE';
+          lightBtn.textContent = 'Activate';
+        }
+
+        // 🌀 Update Fan Status (AERO-FLOW COOLER) - FIXED THIS
+        // Check for both 'fan' and 'cooler' properties for backward compatibility
+        const fanValue = data.fan !== undefined ? data.fan : data.cooler;
+        const fanStatus = document.getElementById("coolerStatus");
+        const fanStatusDot = fanStatus.querySelector('.status-dot');
+        const fanStatusText = fanStatus.querySelector('.status-text');
+        const fanBtn = document.getElementById("coolerBtn");
+
+        if (fanValue === 1) {
+          fanStatusDot.classList.add('active');
+          fanStatusText.classList.add('active');
+          fanStatusText.textContent = 'ACTIVE';
+          fanBtn.textContent = 'Deactivate';
+        } else {
+          fanStatusDot.classList.remove('active');
+          fanStatusText.classList.remove('active');
+          fanStatusText.textContent = 'OFFLINE';
+          fanBtn.textContent = 'Activate';
+        }
+
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        updateConnectionStatus(false);
+      }
+    }
+
+    function updateConnectionStatus(connected) {
+      const statusElement = document.getElementById("connectionStatus");
+      if (connected) {
+        statusElement.textContent = "Connected to ESP32";
+        statusElement.className = "connection-status connected";
+        isConnected = true;
+      } else {
+        statusElement.textContent = "Disconnected from ESP32";
+        statusElement.className = "connection-status disconnected";
+        isConnected = false;
+      }
+    }
+
+    async function toggleMode() {
+      if (!isConnected) {
+        alert("Not connected to ESP32. Check the IP address.");
+        return;
+      }
+      
+      try {
+        // Update local state immediately for responsive UI
+        const modeLabel = document.getElementById("modeLabel");
+        if (currentMode === "manual") {
+          currentMode = "auto";
+          modeLabel.innerText = "Auto Mode";
+        } else {
+          currentMode = "manual";
+          modeLabel.innerText = "Manual Mode";
+        }
+        
+        await fetch(`${ESP_IP}/mode`, { method: 'POST' });
+        fetchData(); // Call fetchData to update the UI with new mode
+      } catch (err) {
+        console.error("Error toggling mode:", err);
+        alert("Failed to toggle mode. Check ESP32 connection.");
+        // Revert local state on error
+        const modeLabel = document.getElementById("modeLabel");
+        if (currentMode === "manual") {
+          currentMode = "auto";
+          modeLabel.innerText = "Auto Mode";
+        } else {
+          currentMode = "manual";
+          modeLabel.innerText = "Manual Mode";
+        }
+      }
+    }
+
+    // Initialize on page load
+    window.onload = function() {
+      initPlantDropdowns();
+      loadPlantSelections();
+      
+      // 🔄 Refresh every 2 seconds
+      setInterval(fetchData, 2000);
+      // Initial fetch
+      fetchData().catch(err => {
+        console.error("Initial fetch error:", err);
+        updateConnectionStatus(false);
+      });
+    };
+</script>
+
+</body>
+</html>
